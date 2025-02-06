@@ -44,14 +44,18 @@ class CountFeatureExtractor(FeatureExtractor):
         The feature vector should be a Counter mapping from token ids to their counts in the text.
 
         Example:
-        Input `text`: ["hi", "hi", "world"]
+        Input `text`: "hi hi world"
         If `self.tokenizer.token_to_id`: {0: "hi", 1: "world", 2: "foo"}
         Output: Counter({0: 2, 1: 1})
         Depending on your implementation, you may also want to explicitly handle cases of unseen tokens:
         Output: Counter({0: 2, 1: 1, 2: 0})
         (In the above case, the token "foo" is not in the text, so its count is 0.)
         """
-        raise Exception("TODO: Implement this method")
+        # Tokenize the text and get token IDs
+        token_ids = self.tokenizer.tokenize(text, return_token_ids=True)
+
+        # Count occurrences of each token ID
+        return Counter(token_ids)
 
 
 class CustomFeatureExtractor(FeatureExtractor):
