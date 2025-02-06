@@ -88,7 +88,23 @@ class NgramTokenizer(Tokenizer):
         Input: "This movie was really bad, but bad in a fun way, so I loved it."
         Output: [16999, 51610, 39000, 44191, 89954, 14539, 50931]
         """
-        raise Exception("TODO: Implement this method")
+
+        """
+        Tokenize a text using the NgramTokenizer.
+        If return_token_ids is True, return a list of token ids.
+        Otherwise, return a list of list of token strings (ngrams).
+        """
+        # 1. Split text into words and punctuation
+        words = convert_text_to_words(text)
+
+        # 2. Extract N-Grams and return either strings or token ids
+        ngrams = [tuple(words[i:i + self.n]) for i in range(len(words) - self.n + 1)]
+
+        if return_token_ids:
+            token_ids = [self.token_to_id[ngram] for ngram in ngrams if ngram in self.token_to_id]
+            return token_ids
+        
+        return [ngram for ngram in ngrams if ngram in self.token_to_id]
 
     def train(self, corpus: List[str]):
         """
@@ -109,13 +125,37 @@ class NgramTokenizer(Tokenizer):
         set self.token_to_id: {"This": 0, "movie": 1, "was": 2, "good": 3, "bad": 4}
         set self.id_to_token: {0: "This", 1: "movie", 2: "was", 3: "good", 4: "bad"}
         """
-        raise Exception("TODO: Implement this method")
+        """
+        Train the NgramTokenizer on a corpus.
+        - Extracts n-grams and assigns them unique IDs.
+        - Limits the vocabulary to `self.vocab_size` most frequent tokens (if applicable).
+        """
+        token_counts = defaultdict(int)
+
+        # 1. Iterate over the corpus and count n-gram occurrences
+        for text in corpus:
+            words = convert_text_to_words(text)
+            ngrams = [tuple(words[i:i + self.n]) for i in range(len(words) - self.n + 1)]
+            
+            for ngram in ngrams:
+                token_counts[ngram] += 1
+
+        # 2. Sort n-grams by frequency (most common first)
+        sorted_ngrams = sorted(token_counts.items(), key=lambda x: x[1], reverse=True)
+
+        # 3. Limit vocabulary if vocab_size is set
+        if self.vocab_size != -1:
+            sorted_ngrams = sorted_ngrams[:self.vocab_size]
+
+        # 4. Assign unique IDs to n-grams
+        self.token_to_id = {ngram: idx for idx, (ngram, _) in enumerate(sorted_ngrams)}
+        self.id_to_token = {idx: ngram for ngram, idx in self.token_to_id.items()}
 
     def __len__(self):
         """
         TODO: Return the number of tokens in the vocabulary.
         """
-        raise Exception("TODO: Implement this method")
+        return len(self.token_to_id)
 
 if __name__ == "__main__":
     with jsonlines.open("data/imdb_train.txt", "r") as reader:
