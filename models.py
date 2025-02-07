@@ -185,7 +185,17 @@ class LogisticRegressionClassifier(SentimentClassifier):
         sigmoid_score = sigmoid(5) = 0.993...
         Output: 1
         """
-        raise Exception("TODO: Implement this method")
+        # 1. Extract features (Counter mapping token ID -> count)
+        features = self.featurizer.extract_features(text)
+
+        # 2. Compute the weighted sum (dot product) + bias
+        score = sum(self.weights[token_id] * count for token_id, count in features.items()) + self.bias
+
+        # 3. Apply the sigmoid function
+        sigmoid_score = sigmoid(score)
+
+        # 4. Return 1 if probability ≥ 0.5, otherwise return 0
+        return 1 if sigmoid_score >= 0.5 else 0
 
     def set_weights(self, weights: np.ndarray):
         """
@@ -223,9 +233,35 @@ class LogisticRegressionClassifier(SentimentClassifier):
         If `self.featurizer.extract_features(batch_exs[1].words)`: Counter({2: 1})
         Output:
         set `self.weights`: [-1.5, 1.25, 1.75]
-        set `self.bias`: -0.25
+        set `self.bias`: -0.25 (not -1?)
         """
-        raise Exception("TODO: Implement this method")
+        batch_size = len(batch_exs)
+    
+        # Gradient accumulators
+        weight_updates = np.zeros_like(self.weights, dtype=np.float64)
+        bias_update = 0.0
+
+        for example in batch_exs:
+            # 1. Extract features
+            features = self.featurizer.extract_features(example.words)
+            
+            # 2. Compute probability using sigmoid(score)
+            score = sum(self.weights[token_id] * count for token_id, count in features.items()) + self.bias
+            prediction = self.predict(example.words)
+            
+            # 3. Compute error (prediction - true label)
+            error = prediction - example.label
+            
+            # 4. Accumulate gradient updates
+            for token_id, count in features.items():
+                weight_updates[token_id] += error * count
+            
+            bias_update += error  # Bias update is just the sum of errors
+
+        # 5. Update weights & bias (averaging over batch size)
+        self.weights -= learning_rate * (weight_updates / batch_size)
+        self.bias -= learning_rate * (bias_update / batch_size)
+
 
 
 def get_accuracy(predictions: List[int], labels: List[int]) -> float:
