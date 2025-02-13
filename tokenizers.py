@@ -50,7 +50,7 @@ class NgramTokenizer(Tokenizer):
 
     def tokenize(self, text: str, return_token_ids: bool = False) -> List[List[str]] | List[int]:
         """
-        TODO: Tokenize a text using the NgramTokenizer.
+        Tokenize a text using the NgramTokenizer.
         If return_token_ids is True, return a list of token ids (from 0 to len(vocab)).
         Otherwise, return a list of list of token strings (remember each 'token' is a tuple, e.g. ("hi",) or ("movie", "was")).
         Detailed instructions:
@@ -89,26 +89,23 @@ class NgramTokenizer(Tokenizer):
         Output: [16999, 51610, 39000, 44191, 89954, 14539, 50931]
         """
 
-        """
-        Tokenize a text using the NgramTokenizer.
-        If return_token_ids is True, return a list of token ids.
-        Otherwise, return a list of list of token strings (ngrams).
-        """
-        # 1. Split text into words and punctuation
+        # 1: Split the text into words and punctuation
         words = convert_text_to_words(text)
 
-        # 2. Extract N-Grams and return either strings or token ids
+        # 2: Extract n-grams of size self.n
         ngrams = [tuple(words[i:i + self.n]) for i in range(len(words) - self.n + 1)]
 
         if return_token_ids:
+            # 3: Convert n-grams to token ids, ignoring those not in the vocabulary
             token_ids = [self.token_to_id[ngram] for ngram in ngrams if ngram in self.token_to_id]
             return token_ids
         
+        # 4: Return n-grams as strings, ignoring those not in the vocabulary
         return [ngram for ngram in ngrams if ngram in self.token_to_id]
 
     def train(self, corpus: List[str]):
         """
-        TODO: Train the NgramTokenizer on a corpus. Iterate over the corpus, get ngrams, and count their frequencies.
+        Train the NgramTokenizer on a corpus. Iterate over the corpus, get ngrams, and count their frequencies.
         Detailed instructions:
         1. Initialize the token counts dictionary.
         2. Iterate over the corpus:
@@ -153,7 +150,7 @@ class NgramTokenizer(Tokenizer):
 
     def __len__(self):
         """
-        TODO: Return the number of tokens in the vocabulary.
+        Return the number of tokens in the vocabulary.
         """
         return len(self.token_to_id)
 

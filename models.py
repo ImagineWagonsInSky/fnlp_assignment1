@@ -2,11 +2,12 @@
 
 from utils import SentimentExample
 from typing import List
-from collections import Counter
+from collections import Counter, defaultdict
 import time
 from tokenizers import Tokenizer
 import numpy as np
 from tqdm import tqdm
+import math
 
 import gensim.downloader as api
 
@@ -32,7 +33,8 @@ class CountFeatureExtractor(FeatureExtractor):
     Extracts count features from text - your tokenizer returns token ids; you count their occurences.
     """
 
-    def __init__(self, tokenizer: Tokenizer):
+    def __init__(self, tokenizer: Tokenizer, keywords: List[str] = None):
+        self.keywords = keywords if keywords is not None else []
         self.tokenizer = tokenizer
 
     def __len__(self):
@@ -40,7 +42,7 @@ class CountFeatureExtractor(FeatureExtractor):
 
     def extract_features(self, text: str) -> Counter:
         """
-        TODO: Extract count features from a text represented as a list of words.
+        Extract count features from a text represented as a list of words.
         The feature vector should be a Counter mapping from token ids to their counts in the text.
 
         Example:
@@ -66,16 +68,20 @@ class CustomFeatureExtractor(FeatureExtractor):
     def __init__(self, tokenizer: Tokenizer):
         self.tokenizer = tokenizer
 
-    def __len__(self):
+    def __len__(self): 
         return len(self.tokenizer)
 
     def extract_features(self, text: str) -> Counter:
         """
-        TODO: Implement your own custom feature extractor. The returned format should be the same as in CountFeatureExtractor,
-        a Counter mapping from feature ids to their values.
+        We use a feature extractor that returns binary features for a text.
+        Each token ID is mapped to 1 if it appears in the text, and 0 otherwise.
         """
-        raise Exception("TODO: Implement this method")
-
+        # Tokenize text into token IDs
+        token_ids = self.tokenizer.tokenize(text, return_token_ids=True)
+        # Convert list of token_ids into a set to remove duplicates,
+        # then assign a value of 1 for each token.
+        binary_features = {token_id: 1 for token_id in set(token_ids)}
+        return Counter(binary_features)
 
 class MeanPoolingWordVectorFeatureExtractor(FeatureExtractor):
     def __init__(self, tokenizer: Tokenizer):
@@ -90,7 +96,7 @@ class MeanPoolingWordVectorFeatureExtractor(FeatureExtractor):
 
     def get_word_vector(self, word) -> np.ndarray:
         """
-        TODO: Get the word vector for a word from self.word_to_vector_model. If the word is not in the vocabulary, return None.
+        Get the word vector for a word from self.word_to_vector_model. If the word is not in the vocabulary, return None.
         
         Example:
         Input `word`: "hello"
@@ -98,11 +104,14 @@ class MeanPoolingWordVectorFeatureExtractor(FeatureExtractor):
         Input `word`: "328hdnsr32ion"
         Output: None
         """
-        raise Exception("TODO: Implement this method")
+        if word in self.word_to_vector_model:
+            return self.word_to_vector_model[word]
+        else:
+            return None
 
     def extract_features(self, text: List[str]) -> Counter:
         """
-        TODO: Extract mean pooling word vector features from a text represented as a list of words.
+        Extract mean pooling word vector features from a text represented as a list of words.
         Detailed instructions:
         1. Tokenize the text into words using self.tokenizer.tokenize.
         2. For each word, get its word vector (using get_word_vector method).
@@ -112,7 +121,17 @@ class MeanPoolingWordVectorFeatureExtractor(FeatureExtractor):
         from token ids to their counts, normally you would not need to do this conversion.
         Remember to ignore words that do not have a word vector.
         """
-        raise Exception("TODO: Implement this method")
+        words = self.tokenizer.tokenize(text)
+        word_vectors = [self.get_word_vector(word) for word in words if self.get_word_vector(word) is not None]
+
+        if not word_vectors:
+            return Counter()
+
+        mean_vector = np.mean(word_vectors, axis=0)
+
+        feature_counter = Counter({i: mean_vector[i] for i in range(len(mean_vector))})
+
+        return feature_counter
 
 
 class SentimentClassifier(object):
@@ -167,7 +186,7 @@ class LogisticRegressionClassifier(SentimentClassifier):
 
     def predict(self, text: str) -> int:
         """
-        TODO: Predict the sentiment of a text, should be either 0 or 1.
+        Predict the sentiment of a text, should be either 0 or 1.
         You will need to use the sigmoid function from above, which is already implemented.
         Detailed instructions:
         1. Extract features from the text using self.featurizer.extract_features.
@@ -297,7 +316,7 @@ def train_logistic_regression(
     epochs: int = 10,
 ) -> LogisticRegressionClassifier:
     """
-    TODO: Train a logistic regression model.
+    Train a logistic regression model.
     :param train_exs: training set, List of SentimentExample objects
     :param feat_extractor: feature extractor to use
     :return: trained LogisticRegressionClassifier model
